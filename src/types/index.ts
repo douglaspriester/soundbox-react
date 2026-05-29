@@ -5,6 +5,7 @@ export type SubConfig = 'card' | 'sym' | 'ef';
 export type Severity = 'error' | 'warn' | 'ok' | 'info' | 'gold';
 
 export type TabId =
+  | 'montar'
   | 'resumo'
   | 'sala'
   | 'woofer'

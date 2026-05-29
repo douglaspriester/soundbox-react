@@ -93,6 +93,20 @@ body {
 }
 .tb:hover[aria-selected='false'] { color: var(--text); }
 
+.sysgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+@media (max-width: 560px) { .sysgrid { grid-template-columns: 1fr; } }
+.syscard { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px; cursor: pointer; color: var(--text); transition: border-color 0.15s, background 0.15s; }
+.syscard:hover { border-color: var(--gold-line); }
+.syscard.on { border-color: var(--gold); background: var(--gold-fill); }
+.systier { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 4px; }
+.sysname { font-size: 15px; font-weight: 700; color: var(--text); }
+.sysspec { font-size: 11px; color: var(--gold-soft); margin: 3px 0 6px; }
+.sysblurb { font-size: 11px; color: var(--text-2); line-height: 1.5; }
+.sysprice { font-size: 12px; font-weight: 700; color: var(--gold); margin-top: 8px; }
+.syslinks { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.syslinks a { font-size: 10px; color: var(--text-2); text-decoration: none; }
+.syslinks a:hover { color: var(--gold); text-decoration: underline; }
+
 .equip { display: flex; gap: 7px; overflow-x: auto; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface); scrollbar-width: none; }
 .equip::-webkit-scrollbar { display: none; }
 .equip-chip { font-size: 10px; color: var(--text); white-space: nowrap; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 3px 9px; }

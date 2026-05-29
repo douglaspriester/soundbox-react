@@ -2,7 +2,9 @@ import { useState } from 'react';
 import type { TabId } from './types';
 import { useStore, configOf } from './store/useStore';
 import { buildShareUrl, writeHash } from './store/share';
+import { TABS } from './appTabs';
 import { TabNav } from './components/Nav/TabNav';
+import { Montar } from './components/tabs/Montar';
 import { Resumo } from './components/tabs/Resumo';
 import { Sala } from './components/tabs/Sala';
 import { Woofer } from './components/tabs/Woofer';
@@ -17,6 +19,7 @@ import { Orca } from './components/tabs/Orca';
 import { Comparar } from './components/tabs/Comparar';
 
 const PANELS: Record<TabId, () => React.ReactElement> = {
+  montar: Montar,
   resumo: Resumo,
   sala: Sala,
   woofer: Woofer,
@@ -59,7 +62,9 @@ export default function App() {
   const reset = useStore((s) => s.reset);
   const [shared, setShared] = useState(false);
 
-  const Panel = PANELS[activeTab];
+  // Fall back to the landing tab if a previously-persisted tab is no longer in the simplified nav.
+  const effectiveTab = TABS.some((t) => t.id === activeTab) ? activeTab : 'montar';
+  const Panel = PANELS[effectiveTab];
 
   const share = async () => {
     const cfg = configOf(useStore.getState());
@@ -97,11 +102,11 @@ export default function App() {
         </div>
       </header>
 
-      <TabNav active={activeTab} onChange={setTab} />
+      <TabNav active={effectiveTab} onChange={setTab} />
       <EquipHeader />
 
       <main className="body">
-        <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
+        <div role="tabpanel" id={`panel-${effectiveTab}`} aria-labelledby={`tab-${effectiveTab}`}>
           <Panel />
         </div>
       </main>

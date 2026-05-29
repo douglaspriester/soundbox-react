@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { TOKENS } from '../theme/tokens';
 import type { Emitter } from '../physics/coverage';
-import { splAtPoint, coverageStats } from '../physics/coverage';
+import { splAtPoint, coverageStats, reverbFloorDb } from '../physics/coverage';
+import { surfaceArea, UNTREATED_ALPHA } from '../physics/acoustics';
+import { addedSabins } from '../data/treatments';
 import type { Speaker } from '../types';
 
 const AUDIENCE = { x0: 0.05, y0: 0.42, x1: 0.95, y1: 0.96 };
@@ -46,6 +48,8 @@ export function InteractiveVenue() {
   const resetLayout = useStore((s) => s.resetLayout);
   const length = useStore((s) => s.length);
   const width = useStore((s) => s.width);
+  const height = useStore((s) => s.height);
+  const treatments = useStore((s) => s.treatments);
   const wooferSpl = useStore((s) => s.woofer.spl);
   const wooferPw = useStore((s) => s.woofer.pw);
   const driverCov = useStore((s) => s.driver.cov);
@@ -81,7 +85,13 @@ export function InteractiveVenue() {
     () => eff.map((sp) => emitterOf(sp, length, width, wooferSpl, wooferPw, driverCov)).filter((e): e is Emitter => e !== null),
     [eff, length, width, wooferSpl, wooferPw, driverCov],
   );
-  const stats = useMemo(() => coverageStats(emitters, length, width, AUDIENCE), [emitters, length, width]);
+  // Diffuse field floor from the room: more treatment → lower reverb → direct-field structure shows.
+  const reverbDb = useMemo(() => {
+    const s = surfaceArea(length, width, height);
+    const alpha = (UNTREATED_ALPHA * s + addedSabins(treatments).mid) / s;
+    return reverbFloorDb(emitters, s, alpha);
+  }, [emitters, length, width, height, treatments]);
+  const stats = useMemo(() => coverageStats(emitters, length, width, AUDIENCE, reverbDb), [emitters, length, width, reverbDb]);
 
   const counts = useMemo(() => {
     const c = { main: 0, fill: 0, sub: 0 };
@@ -123,7 +133,7 @@ export function InteractiveVenue() {
       const cols = 56, rows = 32, cw = w / cols, ch = h / rows;
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
-          const spl = splAtPoint(((i + 0.5) / cols) * length, ((j + 0.5) / rows) * width, emitters);
+          const spl = splAtPoint(((i + 0.5) / cols) * length, ((j + 0.5) / rows) * width, emitters, reverbDb);
           const c = cellColor(spl - stats.mean);
           if (c) { ctx.fillStyle = c; ctx.fillRect(x0 + i * cw, y0 + j * ch, cw + 0.6, ch + 0.6); }
         }
@@ -297,8 +307,8 @@ export function InteractiveVenue() {
         <div className="at">Arraste o corpo p/ mover · arraste a ponta da linha p/ girar</div>
         <div className="ad">
           Áreas <b style={{ color: TOKENS.gold }}>douradas</b> = som bom (nível parelho); <b style={{ color: '#f05c40' }}>quentes</b> = perto demais; <b style={{ color: '#4a78c8' }}>frias</b> = buracos.
-          O mapa usa os falantes reais: SPL máx do woofer ({maxSpl(wooferSpl, wooferPw).toFixed(0)}dB = {wooferSpl}dB + {wooferPw}W) e cobertura do driver ({driverCov}°). Sub é não-direcional (fora do mapa, mas posicionável). Toque numa caixa pra selecionar/remover.
-          {bg ? ' Fundo: render do local.' : ' (Para usar o render do local como fundo, coloque-o em public/venue-bg.png.)'}
+          Modelo: som <b>direto</b> (SPL máx do woofer {maxSpl(wooferSpl, wooferPw).toFixed(0)}dB = {wooferSpl}dB + {wooferPw}W, cobertura do driver {driverCov}°) <b>+ campo reverberante da sala</b> (~{isFinite(reverbDb) ? reverbDb.toFixed(0) : '—'}dB). Tratar a sala (aba Sala) baixa a reverberação e revela a estrutura do som direto. Sub é não-direcional (posicionável, fora do mapa).
+          {bg ? ' Fundo: render do local.' : ' (Render do local como fundo: coloque em public/venue-bg.png.)'}
         </div>
       </div>
     </div>

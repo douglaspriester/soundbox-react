@@ -4,6 +4,7 @@ import type { Config, DriverParams, RoomTreatments, TabId, WooferParams, FillSpe
 import { WOOFERS } from '../data/woofers';
 import { HF_DRIVERS } from '../data/driversHF';
 import { DEFAULT_FILLS } from '../data/fills';
+import { SYSTEMS } from '../data/systems';
 
 function wooferOf(nm: string): WooferParams {
   const p = WOOFERS.find((x) => x.nm === nm) ?? WOOFERS[0];
@@ -22,8 +23,8 @@ export const DEFAULT_CONFIG: Config = {
   treatments: { bassTraps: false, panels: false, ceiling: false, diffuser: false },
   woofer: wooferOf('B&C 12CL76'),
   wooferPreset: 'B&C 12CL76',
-  driver: driverOf('B&C DE180'),
-  driverPreset: 'B&C DE180',
+  driver: driverOf('Faital Pro HF108'),
+  driverPreset: 'Faital Pro HF108',
   cabinetType: 'sealed',
   targetQtc: 0.5,
   volumeL: 42,
@@ -56,6 +57,7 @@ interface StoreState extends Config {
   activeTab: TabId;
   snapshotB: Config | null;
   layout: VenueLayout;
+  selectedSystem: string;
 
   setTab: (t: TabId) => void;
   setRoom: (patch: Partial<Pick<Config, 'length' | 'width' | 'height'>>) => void;
@@ -64,6 +66,7 @@ interface StoreState extends Config {
   applyWoofer: (nm: string) => void;
   setDriver: (patch: Partial<DriverParams>) => void;
   applyDriver: (nm: string) => void;
+  applySystem: (id: string) => void;
   setCabinet: (patch: Partial<Pick<Config, 'cabinetType' | 'targetQtc' | 'volumeL' | 'useCustomVolume'>>) => void;
   setSub: (patch: Partial<Pick<Config, 'subFc' | 'subCfg'>>) => void;
   setSystem: (patch: Partial<Pick<Config, 'splTarget' | 'distance'>>) => void;
@@ -96,9 +99,10 @@ export const useStore = create<StoreState>()(
   persist(
     (set) => ({
       ...DEFAULT_CONFIG,
-      activeTab: 'resumo',
+      activeTab: 'montar',
       snapshotB: null,
       layout: DEFAULT_LAYOUT,
+      selectedSystem: 'listening',
 
       setTab: (t) => set({ activeTab: t }),
       setRoom: (patch) => set(patch),
@@ -108,6 +112,16 @@ export const useStore = create<StoreState>()(
       applyWoofer: (nm) => set({ woofer: wooferOf(nm), wooferPreset: nm, useCustomVolume: false }),
       setDriver: (patch) => set((s) => ({ driver: { ...s.driver, ...patch }, driverPreset: '' })),
       applyDriver: (nm) => set({ driver: driverOf(nm), driverPreset: nm }),
+      applySystem: (id) =>
+        set(() => {
+          const sys = SYSTEMS.find((x) => x.id === id) ?? SYSTEMS[1];
+          return {
+            woofer: { ...sys.woofer }, wooferPreset: sys.wooferName,
+            driver: { ...sys.driver }, driverPreset: sys.driverName,
+            cabinetType: sys.cabinetType, targetQtc: sys.targetQtc, useCustomVolume: false,
+            selectedSystem: sys.id,
+          };
+        }),
       setCabinet: (patch) => set(patch),
       setSub: (patch) => set(patch),
       setSystem: (patch) => set(patch),
@@ -115,7 +129,7 @@ export const useStore = create<StoreState>()(
         set((s) => ({ fills: s.fills.map((fseg, i) => (i === index ? { ...fseg, distanceCm } : fseg)) })),
 
       loadConfig: (c) => set({ ...c }),
-      reset: () => set({ ...DEFAULT_CONFIG, layout: DEFAULT_LAYOUT }),
+      reset: () => set({ ...DEFAULT_CONFIG, layout: DEFAULT_LAYOUT, selectedSystem: 'listening' }),
       saveToB: () => set((s) => ({ snapshotB: configOf(s) })),
       clearB: () => set({ snapshotB: null }),
       moveSpeaker: (id, x, y) =>
@@ -139,7 +153,7 @@ export const useStore = create<StoreState>()(
         if (version < 2 && p) p.layout = DEFAULT_LAYOUT;
         return p;
       },
-      partialize: (s) => ({ ...configOf(s), activeTab: s.activeTab, snapshotB: s.snapshotB, layout: s.layout }),
+      partialize: (s) => ({ ...configOf(s), activeTab: s.activeTab, snapshotB: s.snapshotB, layout: s.layout, selectedSystem: s.selectedSystem }),
     },
   ),
 );
